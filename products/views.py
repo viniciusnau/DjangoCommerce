@@ -1,6 +1,10 @@
-from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse, Http404
+from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, JsonResponse, Http404, HttpResponseRedirect
+
 from products.models import Product
+from products.forms import ProductModelForm
 
 # Create your views here.
 def search_view(request, *args, **kwargs):
@@ -9,9 +13,16 @@ def search_view(request, *args, **kwargs):
     context = {"name": "*your name*", "query": query}
     return render(request, "home.html", context)
 
+@staff_member_required
 def product_create_view(request, *args, **kwargs):
-    return render(request, "forms.html", context)
-
+    form = ProductModelForm(request.POST or None)
+    if form.is_valid():
+        obj = form.save(commit=False)
+        obj.user = request.user
+        obj.save()
+        form = ProductModelForm()
+    return render(request, "forms.html", {"form": form})
+    
 def product_detail_view(request, pk):
     try:
         obj = Product.objects.get(pk= pk)
